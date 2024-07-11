@@ -8,3 +8,8 @@ const divideOperator = (a, b) => a / b;
 let leftOperand;
 let operator;
 let rightOperand;
+
+// function for performing an operation
+function operate(leftOperand, operator, rightOperand) {
+    return operator(leftOperand, rightOperand);
+}
