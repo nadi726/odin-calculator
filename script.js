@@ -9,6 +9,7 @@ let leftOperand;
 let operator;
 let rightOperand;
 let displayValue = "";
+const DEFAULT_DISPLAY = "0"
 
 //
 const displayDiv = document.querySelector("#display");
@@ -22,21 +23,38 @@ function operate(leftOperand, operator, rightOperand) {
     return operator(leftOperand, rightOperand);
 }
 
-function populateDisplay(digit) {
-    displayValue += digit;
-    displayDiv.textContent = displayValue;
+function modifyDisplay(type, content) {
+    switch (type) {
+        case "add":
+            displayValue += content;
+            break;
+        case "deleteChar":
+            displayValue = displayValue.slice(0, -1);
+            break;
+        case "set":
+            displayValue = content;
+            break;
+        case "clear":
+            displayValue = "";
+            break;
+    }
+
+    if (displayValue === ""){
+        displayDiv.textContent = DEFAULT_DISPLAY;
+    } else {
+        displayDiv.textContent = displayValue;
+    }
 }
 
-
-// Manipulate display
+// Modify display
 for (let numberButton of numberButtons) {
     let currentNumber = numberButton.textContent;
-    numberButton.addEventListener("click", () => populateDisplay(currentNumber));
+    numberButton.addEventListener("click", () => modifyDisplay("add", currentNumber));
 }
 
 decimalPointButton.addEventListener("click", () => {
     if (!displayValue.includes(".")) {
-        populateDisplay(".");
+        modifyDisplay("add", ".");
     }
 });
 
@@ -44,11 +62,7 @@ clearButton.addEventListener("click", () => {
     leftOperand = null;
     operator = null;
     rightOperand = null;
-    displayValue = "";
-    displayDiv.textContent = "0";
+    modifyDisplay("clear");
 });
 
-deleteButton.addEventListener("click", () => {
-    displayValue = displayValue.slice(0, -1);
-    displayDiv.textContent = displayValue;
-});
+deleteButton.addEventListener("click", () => modifyDisplay("deleteChar"));
