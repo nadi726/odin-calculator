@@ -1,10 +1,11 @@
 const NUM_OF_DIGITS = 7;
+const DEFAULT_DISPLAY = "0";
 
 // operator functions
 const addOperator = (a, b) => a + b;
 const subtractOperator = (a, b) => a - b;
 const multiplyOperator = (a, b) => a * b;
-const divideOperator = (a, b) => +parseFloat((a / b).toFixed(NUM_OF_DIGITS));
+const divideOperator = (a, b) => a / b;
 const operatorsMap = {
     "add": addOperator,
     "subtract": subtractOperator,
@@ -12,14 +13,27 @@ const operatorsMap = {
     "divide": divideOperator
 }
 
+// enums
+const InputStates = Object.freeze({
+    LEFT_OPERAND: 0,
+    RIGHT_OPERAND: 1,
+    RESET: 2
+})
+
+const NumberModificationType = {
+    ADD_DIGIT: 0,
+    REMOVE_DIGIT: 1
+};
+
 // global operation variables
-let leftOperand = null;
+let leftOperand = "";
+let rightOperand = "";
 let operator = null;
-let rightOperand = null;
+let numberInputState = InputStates.LEFT_OPERAND;
 let displayValue = "";
-const DEFAULT_DISPLAY = "0"
 
 
+// query selectors for all buttons and display
 const displayDiv = document.querySelector("#display");
 const numberButtons = document.querySelectorAll(".num");
 const decimalPointButton = document.querySelector("#decimal-point");
@@ -28,92 +42,125 @@ const deleteButton = document.querySelector("#delete");
 const operatorsButtons = document.querySelectorAll(".operator");
 const equalsButton = document.querySelector("#equals");
 
-// function for performing an operation
+
+// Helper functions
 function operate(leftOperand, operator, rightOperand) {
-    return operator(leftOperand, rightOperand);
+    if (leftOperand === "" || leftOperand === ".") leftOperand = "0";
+    if (rightOperand === "" || rightOperand === ".") rightOperand = "0";
+    let floatResult = operator(leftOperand, rightOperand);
+    return parseFloat(floatResult.toFixed(NUM_OF_DIGITS));
 }
 
-function isNumber(value) {
-    return !isNaN(value) && !isNaN(parseFloat(value));
+function setDisplay(content) {
+    if (content === "") content = DEFAULT_DISPLAY;
+    displayValue = content;
+    displayDiv.textContent = displayValue;
 }
 
-function modifyDisplay(type, content) {
-    switch (type) {
-        case "add":
-            displayValue += content;
-            break;
-        case "deleteChar":
-            displayValue = displayValue.slice(0, -1);
-            break;
-        case "set":
-            displayValue = content;
-            break;
-        case "clear":
-            displayValue = "";
-            break;
-    }
-
-    if (displayValue === ""){
-        displayDiv.textContent = DEFAULT_DISPLAY;
-    } else {
-        displayDiv.textContent = displayValue;
+function modifyNumber(operand, newDigit, modificationType) {
+    switch (modificationType) {
+        case NumberModificationType.ADD_DIGIT:
+            return operand + newDigit;
+        case NumberModificationType.REMOVE_DIGIT:
+            return operand.slice(0, -1);
     }
 }
-numberButtons.forEach((numberButton) => {
-    numberButton.addEventListener("click", () => {
-        if (operator === null) leftOperand = null;
-    })
-})
-// Modify display
-for (let numberButton of numberButtons) {
-    let currentNumber = numberButton.textContent;
-    numberButton.addEventListener("click", () => modifyDisplay("add", currentNumber));
+
+
+// Event handlers
+function onNumberInput(newDigit, modificationType = NumberModificationType.ADD_DIGIT) {
+    switch (numberInputState) {
+        case InputStates.LEFT_OPERAND:
+            leftOperand = modifyNumber(leftOperand, newDigit, modificationType);
+            setDisplay(leftOperand);
+            break;
+        case InputStates.RIGHT_OPERAND:
+            rightOperand = modifyNumber(rightOperand, newDigit, modificationType);
+            setDisplay(rightOperand);
+            break;
+        case InputStates.RESET:
+            leftOperand = newDigit;
+            setDisplay(newDigit);
+            numberInputState = InputStates.LEFT_OPERAND;
+            break;
+    }
 }
 
-decimalPointButton.addEventListener("click", () => {
-    if (!displayValue.includes(".")) {
-        modifyDisplay("add", ".");
+function onDecimalPointInput() {
+    let currentNumber;
+    switch (numberInputState) {
+        case InputStates.LEFT_OPERAND:
+            currentNumber = leftOperand;
+            break;
+        case InputStates.RIGHT_OPERAND:
+            currentNumber = rightOperand;
+            break;
+        case InputStates.RESET:
+            currentNumber = "0";
+            break;
     }
-});
-
-clearButton.addEventListener("click", () => {
-    leftOperand = null;
-    operator = null;
-    rightOperand = null;
-    modifyDisplay("clear");
-});
-
-deleteButton.addEventListener("click", () => modifyDisplay("deleteChar"));
-
+    // insert digit to empty number
+    if (currentNumber === "") {
+        onNumberInput("0.")
+    }
+    // attempt to insert digit to existing number
+    else if (!currentNumber.includes(".")) {
+        onNumberInput(".");
+    }
+}
 
 function onOperatorClick(operatorFunction) {
-    if (leftOperand === null) {
-        if (isNumber(displayValue)) {
-            leftOperand = +displayValue;
-            operator = operatorFunction;
-            modifyDisplay("clear");
-            displayDiv.textContent = leftOperand;
-        }
-    } else {
-        if (isNumber(displayValue) && operator !== null) {
-            let result = operate(leftOperand, operator, +displayValue);
-            modifyDisplay("clear");
-            displayDiv.textContent = result;
-            leftOperand = result;
-        }
+    if (leftOperand === "") return;
+
+    if (rightOperand === "") {
+        operator = operatorFunction;
+        numberInputState = InputStates.RIGHT_OPERAND;
+    } else if (operator !== null) {
+        let result = operate(+leftOperand, operator, +rightOperand);
+        setDisplay(result);
+        leftOperand = result;
+        operator = operatorFunction;
+        rightOperand = "";
+        numberInputState = InputStates.RIGHT_OPERAND;
     }
-    operator = operatorFunction;
 }
 
 function onEqualClick() {
-    if (leftOperand !== null && operator !== null && displayValue !== "") {
-        let result = operate(leftOperand, operator, +displayValue);
-        modifyDisplay("clear");
-        displayDiv.textContent = result;
-        leftOperand = result;
-        operator = null;
+    let result;
+    if (operator !== null) {
+        result = operate(+leftOperand, operator, +rightOperand);
+    } else if (leftOperand !== "") {
+        result = operate(+leftOperand, (left, right) => +left, null);
+    } else {
+        result = "0";
     }
+
+    setDisplay(result);
+    leftOperand = result;
+    operator = null;
+    rightOperand = "";
+    numberInputState = InputStates.RESET;
 }
+
+const onDelete = () => onNumberInput("", NumberModificationType.REMOVE_DIGIT);
+
+
+for (let numberButton of numberButtons) {
+    let currentNumber = numberButton.textContent;
+    numberButton.addEventListener("click", () => onNumberInput(currentNumber));
+}
+
+decimalPointButton.addEventListener("click", onDecimalPointInput);
+
+clearButton.addEventListener("click", () => {
+    leftOperand = "";
+    operator = null;
+    rightOperand = "";
+    numberInputState = InputStates.LEFT_OPERAND;
+    setDisplay("");
+});
+
+deleteButton.addEventListener("click", onDelete);
 
 operatorsButtons.forEach((operatorButton) => {
     operatorButton.addEventListener("click", () => {
