@@ -51,6 +51,15 @@ function operate(leftOperand, operator, rightOperand) {
     return parseFloat(floatResult.toFixed(NUM_OF_DIGITS));
 }
 
+function validateResult(result) {
+    if (result === Infinity || isNaN(result)) {
+        onClear();
+        setDisplay("WRONG!!");
+        return false;
+    }
+    return true;
+}
+
 function setDisplay(content) {
     if (content === "") content = DEFAULT_DISPLAY;
     displayValue = content;
@@ -117,6 +126,9 @@ function onOperatorClick(operatorFunction) {
         numberInputState = InputStates.RIGHT_OPERAND;
     } else if (operator !== null) {
         let result = operate(+leftOperand, operator, +rightOperand);
+        
+        if (!validateResult(result)) return;
+
         setDisplay(result);
         leftOperand = result;
         operator = operatorFunction;
@@ -135,11 +147,21 @@ function onEqualClick() {
         result = "0";
     }
 
+    if (!validateResult(result)) return;
+
     setDisplay(result);
     leftOperand = result;
     operator = null;
     rightOperand = "";
     numberInputState = InputStates.RESET;
+}
+
+function onClear() {
+    leftOperand = "";
+    operator = null;
+    rightOperand = "";
+    numberInputState = InputStates.LEFT_OPERAND;
+    setDisplay("");
 }
 
 const onDelete = () => onNumberInput("", NumberModificationType.REMOVE_DIGIT);
@@ -152,13 +174,7 @@ for (let numberButton of numberButtons) {
 
 decimalPointButton.addEventListener("click", onDecimalPointInput);
 
-clearButton.addEventListener("click", () => {
-    leftOperand = "";
-    operator = null;
-    rightOperand = "";
-    numberInputState = InputStates.LEFT_OPERAND;
-    setDisplay("");
-});
+clearButton.addEventListener("click", onClear);
 
 deleteButton.addEventListener("click", onDelete);
 
