@@ -34,6 +34,7 @@ let displayValue = "";
 
 
 // query selectors for all buttons and display
+const calculatorDiv = document.querySelector("#calculator");
 const displayDiv = document.querySelector("#display");
 const numberButtons = document.querySelectorAll(".num");
 const decimalPointButton = document.querySelector("#decimal-point");
@@ -186,3 +187,43 @@ operatorsButtons.forEach((operatorButton) => {
 })
 
 equalsButton.addEventListener("click", onEqualClick);
+
+
+// Keyboard input
+
+// Ensure the calculator div is focusable
+calculatorDiv.setAttribute("tabindex", "0");
+calculatorDiv.addEventListener("click", () => {
+    calculatorDiv.focus(); // Set focus to the calculator div when clicked
+});
+
+function createKeyMap() {
+    const DIGITS = "0123456789";
+    let digitsEntries = DIGITS.split("").map((digit) => [digit, () => onNumberInput(digit)]);
+    let digitsMap = Object.fromEntries(digitsEntries);
+    let keyMap = {
+        ".": onDecimalPointInput,
+        "/": () => onOperatorClick(operatorsMap.divide),
+        "*": () => onOperatorClick(operatorsMap.multiply),
+        "+": () => onOperatorClick(operatorsMap.add),
+        "-": () => onOperatorClick(operatorsMap.subtract),
+        "Enter": onEqualClick,
+        "=": onEqualClick,
+        "Backspace": onDelete,
+        "c": onClear,
+        "C": onClear
+    }
+    return {...digitsMap, ...keyMap};
+}
+
+let keyMap = createKeyMap();
+
+calculatorDiv.addEventListener("keydown", (event) => {
+    let key = event.key;
+
+    if (keyMap.hasOwnProperty(key)) {
+        event.preventDefault();
+        console.log("Pressed key " + key);
+        keyMap[key]();
+    }
+})
